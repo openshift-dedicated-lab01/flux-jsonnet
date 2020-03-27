@@ -115,7 +115,8 @@ function(namespace, git_url, git_user, git_password, git_branch)
             {"secretRef": {name: "flux-git-auth"}},
           ],
           args_+: {
-            "memcached-service": "",
+            "manifest-generation": "true",
+            "registry-disable-scanning": "true",
             "ssh-keygen-dir": "/var/fluxd/keygen",
             "git-url": "https://$(GIT_AUTHUSER):$(GIT_AUTHKEY)@"+git_url,
             "git-branch": git_branch,
