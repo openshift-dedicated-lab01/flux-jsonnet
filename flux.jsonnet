@@ -51,6 +51,20 @@ function(namespace, git_url, git_user, git_password, git_branch)
         "git-keygen": { emptyDir: { medium: "Memory"},},
         "kubeconfig": { configMap: { name: "flux-kubeconfig"},},
         "kubeconfig2": { configMap: { name: "flux-kubeconfig"},},
+        "kubecfg": kube.EmptyDirVolume(),
+      },
+      initContainers_+: {
+        kubecfg: kube.Container("kubecfg") {
+          image: 'busybox',
+          command: [
+            '/bin/sh',
+            '-c',
+            'wget -O /download/kubecfg https://github.com/bitnami/kubecfg/releases/download/v0.15.3/kubecfg-linux-amd64; chmod 755 /download/kubecfg',
+          ],
+          volumeMounts_+: {
+            "kubecfg": {mountPath: "/download"},
+          },
+        },
       },
       containers_+: {
         flux: kube.Container("flux") {
@@ -87,7 +101,10 @@ function(namespace, git_url, git_user, git_password, git_branch)
           volumeMounts_+: {
             "git-keygen": {mountPath: "/var/fluxd/keygen"},
             "kubeconfig": {mountPath: "/.kube"},
-            "kubeconfig2": {mountPath: "/etc/fluxd/kube"},
+            "kubecfg": {
+               mountPath: "/usr/local/bin/kubecfg",
+               subPath: "kubecfg",
+            },
          
           },
           env_: {
