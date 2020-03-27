@@ -17,11 +17,14 @@ function(namespace, git_url, git_user, git_password, git_branch)
       },
     },
   },
-  flux_secret: kube.Secret("flux-git-auth") {
-     metadata+: $.metadata,
-    data_+: {
-      "GIT_AUTHKEY": git_password,
-      "GIT_AUTHUSER": git_user,
+  entrypoint_cmap: kube.ConfigMap("entrypoint"){
+    metadata+: $.metadata,
+    data+: {
+      "entrypoint.sh": |||
+        #!/bin/sh
+        cp /etc/fluxd/ssh/identity /tmp
+        exec fluxd "$@"
+      |||,
     },
   },
   flux_git_deploy: kube.Secret("flux-git-deploy") {
@@ -49,9 +52,15 @@ function(namespace, git_url, git_user, git_password, git_branch)
       serviceAccount: "flux",
       volumes_+: {
         "git-keygen": { emptyDir: { medium: "Memory"},},
+        "git-key": { secret: { secretName: "flux-git-deploy"},},
         "kubeconfig": { configMap: { name: "flux-kubeconfig"},},
-        "kubeconfig2": { configMap: { name: "flux-kubeconfig"},},
         "kubecfg": kube.EmptyDirVolume(),
+        "entrypoint": {
+           configMap: {
+             name: "entrypoint",
+             defaultMode: 488,
+           },
+        },
       },
       initContainers_+: {
         kubecfg: kube.Container("kubecfg") {
@@ -100,33 +109,36 @@ function(namespace, git_url, git_user, git_password, git_branch)
           },
           volumeMounts_+: {
             "git-keygen": {mountPath: "/var/fluxd/keygen"},
+            "git-key": {mountPath: "/etc/fluxd/ssh"},
             "kubeconfig": {mountPath: "/.kube"},
-            "kubeconfig2": {mountPath: "/etc/fluxd/kube"},
             "kubecfg": {
                mountPath: "/usr/local/bin/kubecfg",
                subPath: "kubecfg",
             },
+            "entrypoint": {
+               mountPath: "/entrypoint.sh",
+               subPath: "entrypoint.sh",
+            },
          
           },
           env_: {
-            "KUBECONFIG": "/etc/fluxd/kube/config",
+            "KUBECONFIG": "/.kube/config",
           },
-          envFrom: [
-            {"secretRef": {name: "flux-git-auth"}},
-          ],
           args_+: {
             "manifest-generation": "true",
             "registry-disable-scanning": "true",
             "ssh-keygen-dir": "/var/fluxd/keygen",
-            "git-url": "https://$(GIT_AUTHUSER):$(GIT_AUTHKEY)@"+git_url,
+            "k8s-secret-volume-mount-path": "/tmp",
+            "k8s-allow-namespace": namespace,            
+            "git-url": git_url,
             "git-branch": git_branch,
             "git-label": "flux",
             "git-user": git_user,
             "git-email": "openshiftlab01@gmail.com",
             "listen-metrics": ":3031"
           },
-          args+: [
-            "--git-readonly",
+          command: [
+            "/entrypoint.sh",
           ],
         },
       },
