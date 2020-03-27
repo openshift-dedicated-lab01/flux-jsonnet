@@ -2,7 +2,7 @@ local kube = import 'kube.libsonnet';
 local rules = import "roles.txt";
 local config_file = importstr "config.txt";
 
-function(namespace, git_url, git_user, git_password)
+function(namespace, git_url, git_user, git_password, git_branch)
 {
   metadata:: {"namespace": namespace,},
   flux_sa: kube.ServiceAccount("flux") {
@@ -43,7 +43,7 @@ function(namespace, git_url, git_user, git_password)
     metadata+: $.metadata,
     spec+: {
       replicas: 1,
-      revisionHistoryLimit: 1,
+      revisionHistoryLimit: 0,
       template+: {
       spec+: {
       serviceAccount: "flux",
@@ -99,10 +99,10 @@ function(namespace, git_url, git_user, git_password)
           args_+: {
             "memcached-service": "",
             "ssh-keygen-dir": "/var/fluxd/keygen",
-            "git-url": "https://$(GIT_AUTHUSER):$(GIT_AUTHKEY)@github.com/alekssd/test-flux.git",
-            "git-branch": "master",
+            "git-url": "https://$(GIT_AUTHUSER):$(GIT_AUTHKEY)@"+git_url,
+            "git-branch": git_branch,
             "git-label": "flux",
-            "git-user": "openshiftlab01",
+            "git-user": git_user,
             "git-email": "openshiftlab01@gmail.com",
             "listen-metrics": ":3031"
           },
