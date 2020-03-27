@@ -101,6 +101,7 @@ function(namespace, git_url, git_user, git_password, git_branch)
           volumeMounts_+: {
             "git-keygen": {mountPath: "/var/fluxd/keygen"},
             "kubeconfig": {mountPath: "/.kube"},
+            "kubeconfig2": {mountPath: "/etc/fluxd/kube"},
             "kubecfg": {
                mountPath: "/usr/local/bin/kubecfg",
                subPath: "kubecfg",
