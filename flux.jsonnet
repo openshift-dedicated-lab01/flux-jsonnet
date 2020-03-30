@@ -2,7 +2,7 @@ local kube = import 'kube.libsonnet';
 local rules = import "roles.txt";
 local config_file = importstr "config.txt";
 
-function(namespace, git_url, git_user, git_password, git_branch, git_key='')
+function(namespace, git_url, git_user='flux', git_password='', git_branch='master', git_key='')
 {
   metadata:: {"namespace": namespace,},
   flux_sa: kube.ServiceAccount("flux") {
@@ -18,6 +18,14 @@ function(namespace, git_url, git_user, git_password, git_branch, git_key='')
     },
   },
   
+  flux_secret: kube.Secret("flux-git-auth") {
+    metadata+: $.metadata,
+    data_+: {
+      "GIT_AUTHKEY": git_password,
+      "GIT_AUTHUSER": git_user,
+    },
+  },
+
   entrypoint_cmap: kube.ConfigMap("entrypoint"){
     metadata+: $.metadata,
     data+: {
@@ -129,6 +137,9 @@ function(namespace, git_url, git_user, git_password, git_branch, git_key='')
           env_: {
             "KUBECONFIG": "/.kube/config",
           },
+          envFrom: [
+            {"secretRef": {name: "flux-git-auth"}},
+          ],
           args_+: {
             "manifest-generation": "true",
             "registry-disable-scanning": "true",
@@ -140,7 +151,8 @@ function(namespace, git_url, git_user, git_password, git_branch, git_key='')
             "git-label": "flux",
             "git-user": git_user,
             "git-email": "openshiftlab01@gmail.com",
-            "listen-metrics": ":3031"
+            "listen-metrics": ":3031",
+            "git-readonly": if std.startsWith(git_url, 'https://') then "true" else "false",
           },
           command: [
             "/entrypoint.sh",
