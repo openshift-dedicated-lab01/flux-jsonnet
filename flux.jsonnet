@@ -2,7 +2,7 @@ local kube = import 'kube.libsonnet';
 local rules = import "roles.txt";
 local config_file = importstr "config.txt";
 
-function(namespace, git_url, git_user='flux', git_password='', git_branch='master', git_key='')
+function(namespace, git_url, git_user='flux', git_password='', git_branch='master', git_key='', git_readonly='false')
 {
   metadata:: {"namespace": namespace,},
   flux_sa: kube.ServiceAccount("flux") {
@@ -152,7 +152,7 @@ function(namespace, git_url, git_user='flux', git_password='', git_branch='maste
             "git-user": git_user,
             "git-email": "openshiftlab01@gmail.com",
             "listen-metrics": ":3031",
-            "git-readonly": if std.startsWith(git_url, 'https://') then "true" else "false",
+            "git-readonly": if std.startsWith(git_url, 'https://') || git_readonly != "false" then "true" else "false",
           },
           command: [
             "/entrypoint.sh",
