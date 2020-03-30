@@ -2,7 +2,7 @@ local kube = import 'kube.libsonnet';
 local rules = import "roles.txt";
 local config_file = importstr "config.txt";
 
-function(namespace, git_url, git_user, git_password, git_branch)
+function(namespace, git_url, git_user, git_password, git_branch, git_key='')
 {
   metadata:: {"namespace": namespace,},
   flux_sa: kube.ServiceAccount("flux") {
@@ -17,6 +17,7 @@ function(namespace, git_url, git_user, git_password, git_branch)
       },
     },
   },
+  
   entrypoint_cmap: kube.ConfigMap("entrypoint"){
     metadata+: $.metadata,
     data+: {
@@ -27,9 +28,13 @@ function(namespace, git_url, git_user, git_password, git_branch)
       |||,
     },
   },
+
   flux_git_deploy: kube.Secret("flux-git-deploy") {
-     metadata+: $.metadata,
-  },
+    metadata+: $.metadata,
+    data+: if std.length(git_key) != 0 then {
+      identity: git_key,
+    } else {},
+  },    
 
   flux_roles: kube.Role("flux") {
      metadata+: $.metadata,
