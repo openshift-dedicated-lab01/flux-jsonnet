@@ -1,19 +1,19 @@
-local kube = import 'kube.libsonnet';
+local kube = import "kube.libsonnet";
 local rules = import "roles.txt";
 local config_file = importstr "config.txt";
 
-function(namespace, git_url, git_user='flux', git_password='', git_branch='master', git_key='', git_readonly='false')
+function(namespace, git_url, git_user="flux", git_password="", git_branch="master", git_key="", git_readonly="false")
 { 
   # cardex-crp-lab01
-  appgroup:: std.split(namespace, '-')[0],
-  zone:: std.split(namespace, '-')[1],
-  env:: std.split(namespace, '-')[2],
+  appgroup:: std.split(namespace, "-")[0],
+  zone:: std.split(namespace, "-")[1],
+  env:: std.split(namespace, "-")[2],
   metadata:: {
     "namespace": namespace,
     "labels": {
-      'appgroup': $.appgroup,
-      'zone': $.zone,
-      'env': $.env,
+      "appgroup": $.appgroup,
+      "zone": $.zone,
+      "env": $.env,
     },
   },
   flux_sa: kube.ServiceAccount("flux") {
@@ -88,11 +88,11 @@ function(namespace, git_url, git_user='flux', git_password='', git_branch='maste
       },
       initContainers_+: {
         kubecfg: kube.Container("kubecfg") {
-          image: 'busybox',
+          image: "busybox",
           command: [
-            '/bin/sh',
-            '-c',
-            'wget -O /download/kubecfg https://github.com/bitnami/kubecfg/releases/download/v0.15.3/kubecfg-linux-amd64; chmod 755 /download/kubecfg',
+            "/bin/sh",
+            "-c",
+            "wget -O /download/kubecfg https://github.com/bitnami/kubecfg/releases/download/v0.15.3/kubecfg-linux-amd64; chmod 755 /download/kubecfg",
           ],
           volumeMounts_+: {
             "kubecfg": {mountPath: "/download"},
@@ -147,6 +147,9 @@ function(namespace, git_url, git_user='flux', git_password='', git_branch='maste
           },
           env_: {
             "KUBECONFIG": "/.kube/config",
+            "LQAPPGROUP": $.appgroup,
+            "LQZONE": $.zone,
+            "LQENV": $.env,
           },
           envFrom: [
             {"secretRef": {name: "flux-git-auth"}},
@@ -163,7 +166,7 @@ function(namespace, git_url, git_user='flux', git_password='', git_branch='maste
             "git-user": git_user,
             "git-email": "openshiftlab01@gmail.com",
             "listen-metrics": ":3031",
-            "git-readonly": if std.startsWith(git_url, 'https://') || git_readonly != "false" then "true" else "false",
+            "git-readonly": if std.startsWith(git_url, "https://") || git_readonly != "false" then "true" else "false",
           },
           command: [
             "/entrypoint.sh",
