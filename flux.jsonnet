@@ -40,7 +40,7 @@ function(namespace, git_url, git_user='flux', git_password='', git_branch='maste
   flux_git_deploy: kube.Secret("flux-git-deploy") {
     metadata+: $.metadata,
     data+: if std.length(git_key) != 0 then {
-      identity: git_key,
+      identity: std.base64(git_key),
     } else {},
   },    
 
